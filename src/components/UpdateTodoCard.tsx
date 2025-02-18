@@ -52,7 +52,9 @@ const UpdateTodoCard = () => {
             const response = await axios.get(`/todos/${todoId}`);
             setTodo(response.data);
          } catch (err: unknown) {
-            setError("Failed to load task details.");
+            if (isAxiosError(err)) {
+               setError("Failed to load task details.");
+            }
          }
       };
 

@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import axios from "@/lib/axios";
+import { isAxiosError } from "axios";
+
 const AddTodoCard = () => {
    const router = useRouter();
    const [task, setTask] = useState("");
@@ -21,8 +23,10 @@ const AddTodoCard = () => {
          await axios.post("/todos", { title: task });
          setTask("");
          router.push("/");
-      } catch (err: any) {
-         setError(err.response?.data?.message || "Something went wrong.");
+      } catch (err: unknown) {
+         if (isAxiosError(err)) {
+            setError(err.response?.data?.message || "Something went wrong.");
+         }
       } finally {
          setLoading(false);
       }
