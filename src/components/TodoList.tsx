@@ -1,10 +1,10 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Checkbox } from "@/components/ui/checkbox";
+import { Plus } from "lucide-react";
 import Link from "next/link";
 import axios from "@/lib/axios";
-import { Plus } from "lucide-react";
+import TodoItem from "@/components/TodoItem";
 
 type Todo = {
    _id: string;
@@ -14,18 +14,34 @@ type Todo = {
 
 export default function TodoList() {
    const [todos, setTodos] = useState<Todo[]>([]);
+   const [updated, setUpdated] = useState(false);
+   const [loading, setLoading] = useState(true);
 
-   const toggleTodo = (id: string) => {
-      setTodos((prev) =>
-         prev.map((todo) => (todo._id === id ? { ...todo, completed: !todo.completed } : todo))
-      );
+   const triggerReload = () => setUpdated(!updated);
+
+   const toggleTodo = async (todo: Todo) => {
+      try {
+         await axios.patch(`/todos/${todo._id}`, { completed: !todo.completed });
+         triggerReload();
+      } catch (error) {
+         console.error("Failed to update todo:", error);
+      }
    };
 
    useEffect(() => {
-      axios.get("/todos").then((res) => {
-         setTodos(res.data);
-      });
-   }, []);
+      const fetchTodos = async () => {
+         try {
+            setLoading(true);
+            const response = await axios.get("/todos");
+            setTodos(response.data);
+         } catch (err: unknown) {
+            console.log(err);
+         } finally {
+            setLoading(false);
+         }
+      };
+      fetchTodos();
+   }, [updated]);
 
    return (
       <>
@@ -44,32 +60,22 @@ export default function TodoList() {
          </div>
 
          <div className="mt-4 space-y-3">
-            {todos.length === 0 ? (
+            {loading ? (
+               <p className="text-center text-gray-500 dark:text-gray-400 animate-pulse">
+                  Loading tasks...
+               </p>
+            ) : todos.length === 0 ? (
                <p className="text-center text-gray-500 dark:text-gray-400">
                   No tasks yet. Add some! ✨
                </p>
             ) : (
                todos.map((todo) => (
-                  <div
+                  <TodoItem
                      key={todo._id}
-                     className="flex items-center justify-between p-3 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700"
-                  >
-                     <div className="flex items-center gap-3">
-                        <Checkbox
-                           checked={todo.completed}
-                           onCheckedChange={() => toggleTodo(todo._id)}
-                        />
-                        <span
-                           className={`text-lg ${
-                              todo.completed
-                                 ? "line-through text-gray-400 dark:text-gray-500"
-                                 : "text-gray-900 dark:text-gray-100"
-                           }`}
-                        >
-                           {todo.title}
-                        </span>
-                     </div>
-                  </div>
+                     todo={todo}
+                     toggleTodo={toggleTodo}
+                     triggerReload={triggerReload}
+                  />
                ))
             )}
          </div>
